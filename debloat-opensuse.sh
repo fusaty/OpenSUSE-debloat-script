@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 #  OpenSUSE Debloat Script
-#  Tested on: Tumbleweed & Leap 15.x
+#  Tested on: Tumbleweed
 #  Run as root or with sudo
 # ============================================================
 
@@ -95,6 +95,8 @@ WELCOME=(
   gnome-initial-setup   # GNOME first-run wizard
   openSUSE-Tour
   "opensuse-tour*"
+  opensuse-welcome-launcher
+  gnome-tour
 )
 zypper remove --no-confirm "${WELCOME[@]}" 2>/dev/null || warn "Some welcome/tour packages not found – skipping."
 
