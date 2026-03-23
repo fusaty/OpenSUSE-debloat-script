@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 #  OpenSUSE Debloat Script
-#  Tested on: Tumbleweed
+#  Tested on: Tumbleweed & Leap 15.x
 #  Run as root or with sudo
 # ============================================================
 
@@ -95,8 +95,6 @@ WELCOME=(
   gnome-initial-setup   # GNOME first-run wizard
   openSUSE-Tour
   "opensuse-tour*"
-  opensuse-welcome-launcher
-  gnome-tour
 )
 zypper remove --no-confirm "${WELCOME[@]}" 2>/dev/null || warn "Some welcome/tour packages not found – skipping."
 
@@ -216,7 +214,28 @@ else
 fi
 
 # ============================================================
-# 7. CLEAN UP ORPHANS & CACHE
+# 7. WAYLAND CLEANUP (optional)
+# ============================================================
+section "Wayland / X11 cleanup"
+echo "  If you are running a pure Wayland session you can remove"
+echo "  standalone X11 tools and utilities. XWayland itself is"
+echo "  kept — it is required as a compatibility layer for apps"
+echo "  that are not yet natively Wayland."
+echo ""
+read -rp "[?] Are you running Wayland? (y/N): " WAYLAND_ANSWER
+if [[ "${WAYLAND_ANSWER,,}" == "y" ]]; then
+  X11_PKGS=(
+    xterm                  # X11 terminal emulator
+    xscreensaver           # X11 screensaver daemon
+  )
+  section "Removing X11 tools (keeping XWayland)"
+  zypper remove --no-confirm "${X11_PKGS[@]}" 2>/dev/null || warn "Some X11 packages not found – skipping."
+else
+  info "Skipping X11 cleanup."
+fi
+
+# ============================================================
+# 8. CLEAN UP ORPHANS & CACHE
 # ============================================================
 section "Cleaning orphaned packages & zypper cache"
 zypper packages --orphaned | awk 'NR>4 {print $5}' | \
@@ -226,7 +245,7 @@ info "Cleaning zypper package cache..."
 zypper clean --all
 
 # ============================================================
-# 8. DISABLE UNUSED SERVICES
+# 9. DISABLE UNUSED SERVICES
 # ============================================================
 section "Disabling unused services"
 SERVICES=(
