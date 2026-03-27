@@ -22,6 +22,48 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # ============================================================
+# INTRO & CONFIRMATION
+# ============================================================
+clear
+echo -e "${RED}"
+echo "  ╔═══════════════════════════════════════════════════════╗"
+echo "  ║           openSUSE Debloat Script                     ║"
+echo "  ╚═══════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+echo "  This script will clean up your openSUSE installation by"
+echo "  removing packages and services you most likely don't need."
+echo ""
+echo "  The following steps will be performed:"
+echo ""
+echo -e "  ${GREEN}1.${NC} Remove pre-installed games & toys"
+echo -e "  ${GREEN}2.${NC} Remove unwanted office/productivity extras (Calligra, Akonadi, etc.)"
+echo -e "  ${GREEN}3.${NC} Remove multimedia bloat (Dragon, Elisa, Rhythmbox, etc.)"
+echo -e "  ${GREEN}4.${NC} Remove openSUSE Welcome & Tour apps"
+echo -e "  ${GREEN}5.${NC} Remove unused IM/chat tools (Empathy, Pidgin, Kopete)"
+echo -e "  ${GREEN}5a.${NC} Optional: remove YaST modules (you choose the scope)"
+echo -e "  ${GREEN}5b.${NC} Optional: remove app store front-ends (Discover / GNOME Software)"
+echo -e "  ${GREEN}6.${NC} Optional: remove printer & scanner packages"
+echo -e "  ${GREEN}7.${NC} Optional: remove standalone X11 tools (Wayland systems only)"
+echo -e "  ${GREEN}8.${NC} Clean up orphaned packages & zypper cache"
+echo -e "  ${GREEN}9.${NC} Disable unused services (Avahi, ModemManager)"
+echo ""
+echo -e "  ${YELLOW}Notes:${NC}"
+echo "  • Some steps are interactive — you will be asked before anything"
+echo "    sensitive (printers, YaST, app stores, X11) is removed."
+echo "  • Packages not present on your system are silently skipped."
+echo "  • A reboot will be offered at the end."
+echo ""
+echo -e "${RED}  WARNING:${NC} Review each prompt carefully. Removals cannot be"
+echo "  automatically undone (though zypper install can restore packages)."
+echo ""
+read -rp "  Do you want to continue? (y/N): " CONFIRM
+if [[ "${CONFIRM,,}" != "y" ]]; then
+  echo ""
+  info "Aborted. No changes were made."
+  exit 0
+fi
+
+# ============================================================
 # 1. GAMES & TOYS
 # ============================================================
 section "Removing games & toys"
@@ -99,6 +141,7 @@ WELCOME=(
   gnome-tour
 )
 zypper remove --no-confirm "${WELCOME[@]}" 2>/dev/null || warn "Some welcome/tour packages not found – skipping."
+zypper al "${WELCOME[@]}" 2>/dev/null # lock the apps to prevent reinstallation
 
 # ============================================================
 # 5. UNUSED SYSTEM TOOLS / APPLETS
@@ -229,6 +272,10 @@ if [[ "${WAYLAND_ANSWER,,}" == "y" ]]; then
   X11_PKGS=(
     xterm                  # X11 terminal emulator
     xscreensaver           # X11 screensaver daemon
+    xorg-x11-utils
+    xorg-x11-apps
+    xorg-x11-xinit
+    xorg-x11-server-utils
   )
   section "Removing X11 tools (keeping XWayland)"
   zypper remove --no-confirm "${X11_PKGS[@]}" 2>/dev/null || warn "Some X11 packages not found – skipping."
@@ -237,11 +284,9 @@ else
 fi
 
 # ============================================================
-# 8. CLEAN UP ORPHANS & CACHE
+# 8. CLEAN UP ZYPPER CACHE
 # ============================================================
-section "Cleaning orphaned packages & zypper cache"
-zypper packages --orphaned | awk 'NR>4 {print $5}' | \
-  xargs -r zypper remove --no-confirm 2>/dev/null || warn "No orphans found or removal skipped."
+section "Cleaning zypper cache"
 
 info "Cleaning zypper package cache..."
 zypper clean --all
